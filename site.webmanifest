@@ -1,0 +1,20 @@
+{
+  "name": "SIRIUS | фотостудия в Торжке",
+  "short_name": "SIRIUS",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F2F0E9",
+  "theme_color": "#F2F0E9",
+  "icons": [
+    {
+      "src": "assets/brand/favicon-192.png?v=561",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/brand/favicon-512.png?v=561",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
