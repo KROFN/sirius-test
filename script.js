@@ -210,7 +210,23 @@
     });
   };
 
+  const removeUnavailableInstagram = () => {
+    document.querySelectorAll('a[href*="instagram.com/sirius_ph.studio"]').forEach((link) => link.remove());
 
+    const schema = document.querySelector('script[type="application/ld+json"]');
+    if (!schema) return;
+
+    try {
+      const data = JSON.parse(schema.textContent);
+      if (!Array.isArray(data.sameAs)) return;
+      data.sameAs = data.sameAs.filter((url) => !url.includes('instagram.com/sirius_ph.studio'));
+      schema.textContent = JSON.stringify(data);
+    } catch {
+      // Keep the page functional even if the structured data is edited later.
+    }
+  };
+
+  removeUnavailableInstagram();
   setupContactChoice();
   setupMobileContact();
   setupSectionIndex();
