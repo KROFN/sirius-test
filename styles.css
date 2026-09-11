@@ -195,7 +195,7 @@ a:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
 .spec-highlight small { align-self: end; margin-top: 14px; max-width: 300px; font-size: 13px; line-height: 1.38; color: rgba(16,16,16,.68); }
 .spec-list { border-top: 0; }
 .spec-list > div { min-height: 58px; display: grid; grid-template-columns: minmax(180px, .72fr) minmax(0, 1fr); gap: clamp(18px, 2.2vw, 36px); align-items: baseline; padding: 15px 0 14px; border-bottom: 1px solid var(--rule); }
-.spec-list dt { font-size: 11px; line-height: 1.25; font-weight: 700; letter-spacing: .035em; color: rgba(16,16,16,.58); }
+.spec-list dt { font-size: 11px; line-height: 1.25; font-weight: 700; letter-spacing: .035em; color: rgba(16,16,16,.62); }
 .spec-list dd { font-size: clamp(17px, 1.3vw, 21px); line-height: 1.2; letter-spacing: -.018em; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .booking { background: var(--white); padding-top: clamp(104px, 10vw, 160px); padding-bottom: clamp(104px, 10vw, 160px); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
@@ -206,7 +206,7 @@ a:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
 .booking-flow li { min-height: 136px; padding: 26px clamp(56px, 6vw, 92px) 26px 0; display: grid; grid-template-columns: 34px 1fr; align-content: center; column-gap: 14px; position: relative; }
 .booking-flow li + li { padding-left: clamp(26px, 3.2vw, 48px); }
 .booking-flow li:not(:last-child)::after { content: "→"; position: absolute; right: clamp(18px, 2.5vw, 38px); top: 50%; transform: translateY(-52%); font-size: clamp(28px, 3vw, 48px); line-height: 1; font-weight: 500; color: rgba(16,16,16,.22); }
-.booking-flow span { grid-row: 1 / 3; font-size: 11px; line-height: 1.3; font-weight: 700; color: var(--red); font-variant-numeric: tabular-nums; }
+.booking-flow span { grid-row: 1 / 3; font-size: 11px; line-height: 1.3; font-weight: 700; color: #D33A2A; font-variant-numeric: tabular-nums; }
 .booking-flow strong { font-size: clamp(20px, 1.65vw, 26px); line-height: 1.15; letter-spacing: -.025em; }
 .booking-flow small { margin-top: 8px; font-size: 13px; line-height: 1.4; color: rgba(16,16,16,.64); }
 .booking__cta { margin-top: 34px; }
@@ -306,7 +306,7 @@ a:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
 .final-cta__contact { white-space: nowrap; }
 .final-cta__note {
   max-width: 440px;
-  color: rgba(16,16,16,.78);
+  color: rgba(16,16,16,.84);
   font-weight: 600 !important;
 }
 
@@ -532,7 +532,7 @@ a:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
   font-size: 11px;
   line-height: 1.2;
   font-weight: 650;
-  color: rgba(16,16,16,.58);
+  color: rgba(16,16,16,.62);
 }
 .offer-path__price + .offer-path__media { margin-top: 30px; }
 
