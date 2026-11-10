@@ -1249,8 +1249,6 @@ html { scroll-padding-top: 54px; }
    and add one lightweight entrance moment.
    ========================================================= */
 
-/* The public demo no longer opens with a developer-style disclaimer strip. */
-.concept-strip { display: none !important; }
 
 /* A slightly calmer first screen: more edge breathing room, less oversized type. */
 @media (min-width: 901px) {
