@@ -1,215 +1,206 @@
+/* SIRIUS DARK EDITORIAL: client-only interactions, no simulated backend. */
 (() => {
-  const setupMobileContact = () => {
-    const hero = document.querySelector('[data-hero]');
-    const finalCta = document.querySelector('[data-final]');
-    const footer = document.querySelector('.site-footer');
-    const mobileContact = document.querySelector('[data-mobile-contact]');
+  'use strict';
 
-    if (!hero || !finalCta || !mobileContact || !('IntersectionObserver' in window)) return;
+  const menuButton = document.querySelector('[data-menu-toggle]');
+  const navigation = document.querySelector('[data-nav]');
+  const header = document.querySelector('[data-header]');
+  const closeMenu = () => {
+    document.body.classList.remove('nav-open');
+    menuButton?.setAttribute('aria-expanded', 'false');
+    menuButton?.setAttribute('aria-label', 'Открыть меню');
+  };
+  menuButton?.addEventListener('click', () => {
+    const opening = !document.body.classList.contains('nav-open');
+    document.body.classList.toggle('nav-open', opening);
+    menuButton.setAttribute('aria-expanded', String(opening));
+    menuButton.setAttribute('aria-label', opening ? 'Закрыть меню' : 'Открыть меню');
+  });
+  navigation?.querySelectorAll('a[href^="#"]').forEach((link) => link.addEventListener('click', closeMenu));
+  document.addEventListener('click', (event) => {
+    if (!document.body.classList.contains('nav-open')) return;
+    if (!menuButton?.contains(event.target) && !navigation?.contains(event.target)) closeMenu();
+  });
+  window.addEventListener('resize', () => { if (window.innerWidth > 950) closeMenu(); });
+  window.addEventListener('scroll', () => header?.classList.toggle('is-scrolled', scrollY > 40), {passive:true});
 
-    let heroVisible = true;
-    let finalVisible = false;
-    let footerVisible = false;
+  // Gallery: filter only real, owned source photographs, no fabricated studio category.
+  const filterRoot = document.querySelector('[data-filters]');
+  const gallery = document.querySelector('[data-gallery]');
+  const shots = [...document.querySelectorAll('.port-photo[data-category]')];
+  filterRoot?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-filter]');
+    if (!button || !filterRoot.contains(button)) return;
+    const value = button.dataset.filter;
+    filterRoot.querySelectorAll('button').forEach((node) => {
+      node.setAttribute('aria-pressed', String(node === button));
+    });
+    shots.forEach((shot) => {
+      shot.hidden = value !== 'all' && shot.dataset.category !== value;
+    });
+    gallery?.classList.toggle('is-filtered', value !== 'all');
+  });
 
-    const syncBar = () => {
-      mobileContact.classList.toggle('is-visible', !heroVisible && !finalVisible && !footerVisible);
-    };
+  // Lightbox: native dialog traps focus; Esc, ArrowLeft/Right, close and backdrop.
+  const dialog = document.querySelector('[data-lightbox]');
+  const dialogImage = dialog?.querySelector('[data-lightbox-image]');
+  const dialogCaption = dialog?.querySelector('[data-lightbox-caption]');
+  const openerButtons = [...document.querySelectorAll('.photo-open[data-full]')];
+  let currentIndex = 0;
+  let returnFocus = null;
 
-    new IntersectionObserver(([entry]) => {
-      heroVisible = entry.isIntersecting;
-      syncBar();
-    }, { threshold: 0.08 }).observe(hero);
-
-    new IntersectionObserver(([entry]) => {
-      finalVisible = entry.isIntersecting;
-      syncBar();
-    }, { threshold: 0.08 }).observe(finalCta);
-
-    if (footer) {
-      new IntersectionObserver(([entry]) => {
-        footerVisible = entry.isIntersecting;
-        syncBar();
-      }, { threshold: 0.01 }).observe(footer);
-    }
+  const visibleButtons = () => openerButtons.filter((button) => !button.closest('.port-photo')?.hidden);
+  const displayImage = (buttons, index) => {
+    if (!buttons.length || !dialogImage) return;
+    currentIndex = (index + buttons.length) % buttons.length;
+    const button = buttons[currentIndex];
+    const picture = button.querySelector('img');
+    dialogImage.src = button.dataset.full || '';
+    dialogImage.alt = picture?.alt || 'Фотография из портфолио SIRIUS';
+    if (dialogCaption) dialogCaption.textContent = button.dataset.caption || 'Фотостудия SIRIUS';
+  };
+  const stepImage = (delta) => {
+    const buttons = visibleButtons();
+    displayImage(buttons, currentIndex + delta);
   };
 
-  const setupSectionIndex = () => {
-    const slot = document.querySelector('[data-section-index-slot]');
-    const nav = document.querySelector('[data-section-index]');
-    if (!slot || !nav) return;
-
-    const links = [...nav.querySelectorAll('a[href^="#"]')];
-    const targets = links
-      .map((link) => ({ link, target: document.querySelector(link.getAttribute('href')) }))
-      .filter((item) => item.target);
-    const themedSections = [...document.querySelectorAll('[data-toolbar-theme]')];
-    const themeClasses = ['theme-paper', 'theme-white', 'theme-dark', 'theme-red'];
-    let ticking = false;
-    let currentTheme = '';
-
-    const setTheme = (theme) => {
-      const safeTheme = ['paper', 'white', 'dark', 'red'].includes(theme) ? theme : 'paper';
-      if (safeTheme === currentTheme) return;
-      currentTheme = safeTheme;
-      nav.classList.remove(...themeClasses);
-      nav.classList.add(`theme-${safeTheme}`);
-    };
-
-    const update = () => {
-      ticking = false;
-
-      // Native sticky was flaky in the local browser setup; promote to a real fixed layer.
-      const slotTop = slot.getBoundingClientRect().top;
-      const floating = slotTop <= 0;
-      slot.classList.toggle('is-floating', floating);
-
-      if (!floating) {
-        setTheme('paper');
-      } else {
-        const sampleY = Math.max(1, nav.getBoundingClientRect().height * 0.5);
-        let theme = 'paper';
-        for (const section of themedSections) {
-          const rect = section.getBoundingClientRect();
-          if (rect.top <= sampleY && rect.bottom > sampleY) {
-            theme = section.dataset.toolbarTheme || 'paper';
-            break;
-          }
-        }
-        setTheme(theme);
+  openerButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      if (!dialog || typeof dialog.showModal !== 'function') {
+        const link = button.dataset.full;
+        if (link) window.open(link, '_blank', 'noopener,noreferrer');
+        return;
       }
-
-      // Current navigation chapter: last anchor that has crossed the reading line.
-      const readingLine = window.scrollY + nav.offsetHeight + 120;
-      let active = null;
-      for (const item of targets) {
-        const top = item.target.getBoundingClientRect().top + window.scrollY;
-        if (top <= readingLine) active = item;
-      }
-      for (const item of targets) {
-        if (item === active) item.link.setAttribute('aria-current', 'location');
-        else item.link.removeAttribute('aria-current');
-      }
-
-      // Keep the active item visible in the horizontally scrollable mobile toolbar.
-      if (active && window.innerWidth <= 900) {
-        const linkRect = active.link.getBoundingClientRect();
-        const navRect = nav.getBoundingClientRect();
-        if (linkRect.left < navRect.left + 12 || linkRect.right > navRect.right - 12) {
-          active.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-      }
-    };
-
-    const requestUpdate = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(update);
-    };
-
-    window.addEventListener('scroll', requestUpdate, { passive: true });
-    window.addEventListener('resize', requestUpdate, { passive: true });
-    update();
-  };
-
-
-  const setupContactChoice = () => {
-    const dialog = document.querySelector('[data-contact-dialog]');
-    if (!dialog || typeof dialog.showModal !== 'function') return;
-
-    const context = dialog.querySelector('[data-contact-context]');
-    const wa = dialog.querySelector('[data-contact-wa]');
-    const vk = dialog.querySelector('[data-contact-vk]');
-    const vkDetail = dialog.querySelector('[data-contact-vk-detail]');
-    const close = dialog.querySelector('[data-contact-close]');
-
-    const options = {
-      rental: {
-        context: 'Аренда студии · 900 ₽ / 30 мин · 1 500 ₽ / 60 мин',
-        wa: 'https://wa.me/79520678015?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%B0%D1%80%D0%B5%D0%BD%D0%B4%D0%BE%D0%B2%D0%B0%D1%82%D1%8C%20%D1%81%D1%82%D1%83%D0%B4%D0%B8%D1%8E%20SIRIUS.%20%D0%9F%D0%BE%D0%B4%D1%81%D0%BA%D0%B0%D0%B6%D0%B8%D1%82%D0%B5%20%D1%81%D0%B2%D0%BE%D0%B1%D0%BE%D0%B4%D0%BD%D0%BE%D0%B5%20%D0%B2%D1%80%D0%B5%D0%BC%D1%8F.%20%D0%98%D0%BD%D1%82%D0%B5%D1%80%D0%B5%D1%81%D1%83%D0%B5%D1%82%20%D0%B0%D1%80%D0%B5%D0%BD%D0%B4%D0%B0%20%D0%BD%D0%B0%2030%20%D0%B8%D0%BB%D0%B8%2060%20%D0%BC%D0%B8%D0%BD%D1%83%D1%82.',
-        vk: 'https://vk.ru/market/product/arenda-fotostudii-228520100-10341585',
-        vkDetail: 'Откроется товар «Аренда фотостудии»',
-        waEvent: 'contact_whatsapp_rental',
-        vkEvent: 'open_vk_rental'
-      },
-      shoot: {
-        context: 'Фотосессия со штатным фотографом · 5 000 ₽ / 1 час',
-        wa: 'https://wa.me/79520678015?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D1%84%D0%BE%D1%82%D0%BE%D1%81%D0%B5%D1%81%D1%81%D0%B8%D1%8E%20%D1%81%D0%BE%20%D1%88%D1%82%D0%B0%D1%82%D0%BD%D1%8B%D0%BC%20%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%BE%D0%BC%20SIRIUS.%20%D0%9F%D0%BE%D0%B4%D1%81%D0%BA%D0%B0%D0%B6%D0%B8%D1%82%D0%B5%20%D1%81%D0%B2%D0%BE%D0%B1%D0%BE%D0%B4%D0%BD%D1%83%D1%8E%20%D0%B4%D0%B0%D1%82%D1%83.',
-        vk: 'https://vk.ru/market/product/shtatny-fotograf-228520100-10341537',
-        vkDetail: 'Откроется товар «Штатный фотограф»',
-        waEvent: 'contact_whatsapp_shoot',
-        vkEvent: 'open_vk_shoot'
-      },
-      makeup: {
-        context: 'Макияж · от 2 000 ₽',
-        wa: 'https://wa.me/79520678015?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%B4%D0%BE%D0%B1%D0%B0%D0%B2%D0%B8%D1%82%D1%8C%20%D0%BC%D0%B0%D0%BA%D0%B8%D1%8F%D0%B6%20%D0%BA%20%D1%81%D1%8A%D1%91%D0%BC%D0%BA%D0%B5%20%D0%B2%20SIRIUS.%20%D0%9F%D0%BE%D0%B4%D1%81%D0%BA%D0%B0%D0%B6%D0%B8%D1%82%D0%B5%20%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF%D0%BD%D1%8B%D0%B5%20%D0%B2%D0%B0%D1%80%D0%B8%D0%B0%D0%BD%D1%82%D1%8B%20%D0%B8%20%D0%B2%D1%80%D0%B5%D0%BC%D1%8F.',
-        vk: 'https://vk.ru/market/product/makiyazh-228520100-10945743',
-        vkDetail: 'Откроется товар «Макияж»',
-        waEvent: 'contact_whatsapp_makeup',
-        vkEvent: 'open_vk_makeup'
-      },
-      certificate: {
-        context: 'Подарочный сертификат · от 5 000 ₽',
-        wa: 'https://wa.me/79520678015?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BE%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%82%D1%8C%20%D0%BF%D0%BE%D0%B4%D0%B0%D1%80%D0%BE%D1%87%D0%BD%D1%8B%D0%B9%20%D1%81%D0%B5%D1%80%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%82%20SIRIUS%20%D0%BD%D0%B0%20%D1%84%D0%BE%D1%82%D0%BE%D1%81%D0%B5%D1%81%D1%81%D0%B8%D1%8E%20%D1%81%D0%BE%20%D1%88%D1%82%D0%B0%D1%82%D0%BD%D1%8B%D0%BC%20%D1%84%D0%BE%D1%82%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%BE%D0%BC.%20%D0%9F%D0%BE%D0%B4%D1%81%D0%BA%D0%B0%D0%B6%D0%B8%D1%82%D0%B5%2C%20%D0%BF%D0%BE%D0%B6%D0%B0%D0%BB%D1%83%D0%B9%D1%81%D1%82%D0%B0%2C%20%D0%BF%D0%BE%20%D0%BE%D1%84%D0%BE%D1%80%D0%BC%D0%BB%D0%B5%D0%BD%D0%B8%D1%8E.',
-        vk: 'https://vk.ru/market/product/podarochny-sertifikat-1-chas-228520100-10341568',
-        vkDetail: 'Откроется товар «Подарочный сертификат»',
-        waEvent: 'contact_whatsapp_certificate',
-        vkEvent: 'open_vk_certificate'
-      },
-      booking: {
-        context: 'Проверить свободное время в SIRIUS',
-        wa: 'https://wa.me/79520678015?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D1%83%D1%82%D0%BE%D1%87%D0%BD%D0%B8%D1%82%D1%8C%20%D1%81%D0%B2%D0%BE%D0%B1%D0%BE%D0%B4%D0%BD%D0%BE%D0%B5%20%D0%B2%D1%80%D0%B5%D0%BC%D1%8F%20%D0%B2%20SIRIUS.',
-        vk: 'https://vk.me/siriusstudio',
-        vkDetail: 'Откроются сообщения сообщества',
-        waEvent: 'contact_whatsapp_booking',
-        vkEvent: 'contact_vk_booking'
-      },
-      final: {
-        context: 'Обсудить съёмку в SIRIUS',
-        wa: 'https://wa.me/79520678015?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BE%D0%B1%D1%81%D1%83%D0%B4%D0%B8%D1%82%D1%8C%20%D1%81%D1%8A%D1%91%D0%BC%D0%BA%D1%83%20%D0%B2%20SIRIUS.',
-        vk: 'https://vk.me/siriusstudio',
-        vkDetail: 'Откроются сообщения сообщества',
-        waEvent: 'contact_whatsapp_final',
-        vkEvent: 'contact_vk_final'
-      },
-      mobile: {
-        context: 'Проверить дату для съёмки в SIRIUS',
-        wa: 'https://wa.me/79520678015?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D1%80%D0%BE%D0%B2%D0%B5%D1%80%D0%B8%D1%82%D1%8C%20%D1%81%D0%B2%D0%BE%D0%B1%D0%BE%D0%B4%D0%BD%D1%83%D1%8E%20%D0%B4%D0%B0%D1%82%D1%83%20%D0%B4%D0%BB%D1%8F%20%D1%81%D1%8A%D1%91%D0%BC%D0%BA%D0%B8%20%D0%B2%20SIRIUS.',
-        vk: 'https://vk.me/siriusstudio',
-        vkDetail: 'Откроются сообщения сообщества',
-        waEvent: 'contact_whatsapp_mobile',
-        vkEvent: 'contact_vk_mobile'
-      }
-    };
-
-    const openFor = (trigger) => {
-      const option = options[trigger.dataset.contactKey];
-      if (!option) return;
-      context.textContent = option.context;
-      wa.href = option.wa;
-      vk.href = option.vk;
-      vkDetail.textContent = option.vkDetail;
-      wa.dataset.event = option.waEvent;
-      vk.dataset.event = option.vkEvent;
+      returnFocus = button;
+      const buttons = visibleButtons();
+      displayImage(buttons, buttons.indexOf(button));
       dialog.showModal();
-      requestAnimationFrame(() => wa.focus({ preventScroll: true }));
-    };
+      dialog.querySelector('[data-gallery-close]')?.focus({preventScroll:true});
+    });
+  });
+  dialog?.querySelector('[data-gallery-close]')?.addEventListener('click', () => dialog.close());
+  dialog?.querySelector('[data-gallery-prev]')?.addEventListener('click', () => stepImage(-1));
+  dialog?.querySelector('[data-gallery-next]')?.addEventListener('click', () => stepImage(1));
+  dialog?.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog?.addEventListener('close', () => {
+    if (dialogImage) dialogImage.src = 'assets/img/responsive/editorial-25-480.jpg';
+    returnFocus?.focus({preventScroll:true});
+    returnFocus = null;
+  });
 
-    document.addEventListener('click', (event) => {
-      const trigger = event.target.closest('[data-contact-choice]');
-      if (!trigger) return;
-      event.preventDefault();
-      openFor(trigger);
-    });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeMenu();
+    if (!dialog?.open) return;
+    if (event.key === 'ArrowLeft') {event.preventDefault();stepImage(-1);}
+    if (event.key === 'ArrowRight') {event.preventDefault();stepImage(1);}
+  });
 
-    close?.addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', (event) => {
-      if (event.target === dialog) dialog.close();
-    });
-    dialog.querySelectorAll('.contact-channel').forEach((link) => {
-      link.addEventListener('click', () => dialog.close());
-    });
+  // Prepare a customer inquiry in existing WhatsApp channel.
+  // IMPORTANT: no claim that the booking is saved or that dates are available.
+  const form = document.querySelector('[data-booking-form]');
+  const format = form?.querySelector('#form-format');
+  const phone = form?.querySelector('#form-phone');
+  const result = form?.querySelector('[data-form-result]');
+  const dateInput = form?.querySelector('#form-date');
+  const submit = form?.querySelector('[data-submit]');
+  const formats = {
+    rent30: 'Аренда фотостудии 30 минут, 900 ₽',
+    rent60: 'Аренда фотостудии 60 минут, 1 500 ₽',
+    shoot: 'Фотосессия со штатным фотографом (уточнить стоимость)',
+    other: 'Обсудить условия съёмки'
   };
-  setupContactChoice();
-  setupMobileContact();
-  setupSectionIndex();
+  const clean = (value) => String(value ?? '').trim().replace(/\s+/g, ' ');
+  const localToday = () => {
+    const now = new Date();
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+  };
+  if (dateInput) dateInput.min = localToday();
+  phone?.addEventListener('input', () => {phone.setCustomValidity('');phone.removeAttribute('aria-invalid');});
+  form?.addEventListener('invalid', (event) => {
+    event.target?.setAttribute('aria-invalid', 'true');
+    if (result) result.textContent = 'Проверьте обязательные поля и формат данных перед продолжением.';
+  }, true);
+
+  document.querySelectorAll('a[data-preselect]').forEach((link) => {
+    link.addEventListener('click', () => {
+      if (format) format.value = link.dataset.preselect === 'rent' ? 'rent60' : 'shoot';
+    });
+  });
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const number = clean(phone?.value || '');
+    const digitCount = number.replace(/\D/g, '').length;
+    if (phone && (digitCount < 10 || digitCount > 15)) {
+      phone.setCustomValidity('Укажите действительный номер: от 10 до 15 цифр.');
+      phone.reportValidity();
+      phone.focus();
+      return;
+    }
+    phone?.setCustomValidity('');
+    if (!form.reportValidity()) return;
+
+    const data = new FormData(form);
+    const name = clean(data.get('name'));
+    const selection = clean(data.get('format'));
+    const iso = clean(data.get('date'));
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('.') : '';
+    const notes = clean(data.get('comment'));
+    const message = [
+      'Здравствуйте! Хочу обсудить съёмку в фотостудии SIRIUS.',
+      'Имя: ' + name,
+      'Телефон для связи: ' + number,
+      'Формат: ' + (formats[selection] || 'Уточнить условия'),
+      date ? 'Желаемая дата: ' + date : '',
+      notes ? 'Комментарий: ' + notes : '',
+      'Подскажите, пожалуйста, свободное время и условия записи.'
+    ].filter(Boolean).join('\n');
+    const url = 'https://wa.me/79520678015?text=' + encodeURIComponent(message);
+
+    // Persistent functional fallback is rendered BEFORE navigation attempt.
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Открыть подготовленное сообщение ↗';
+    if (result) {
+      result.textContent = 'Сообщение подготовлено. Отправьте его в WhatsApp, чтобы студия подтвердила запись. ';
+      result.appendChild(link);
+    }
+    // A visible loading state is intentionally not faked: there is no async backend.
+    submit?.setAttribute('aria-busy', 'true');
+    link.click(); // synchronous under real submit gesture; popup blockers may require clicking fallback.
+    submit?.removeAttribute('aria-busy');
+  });
+
+  const sticky = document.querySelector('[data-mobile-contact]');
+  const hero = document.querySelector('[data-hero]');
+  const booking = document.querySelector('[data-final]');
+  const contacts = document.querySelector('#contacts');
+  if (sticky && hero && booking && contacts) {
+    let scheduled = false;
+    const syncSticky = () => {
+      scheduled = false;
+      const vh = window.innerHeight;
+      const occupiesViewport = (node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.top < vh * .88 && rect.bottom > vh * .12;
+      };
+      // Don't duplicate the hero CTA or cover the actual booking/contact forms.
+      const show = window.innerWidth <= 760 &&
+        hero.getBoundingClientRect().bottom < vh * .10 &&
+        !occupiesViewport(booking) && !occupiesViewport(contacts);
+      sticky.classList.toggle('is-visible', show);
+    };
+    const scheduleSync = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(syncSticky);
+    };
+    window.addEventListener('scroll', scheduleSync, {passive:true});
+    window.addEventListener('resize', scheduleSync);
+    syncSticky();
+  }
 })();
