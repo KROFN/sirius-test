@@ -1,0 +1,6 @@
+# Local screenshot, QA and asset-processing outputs
+.asset-env/
+.audit-deps/
+review/
+*.pyc
+__pycache__/
