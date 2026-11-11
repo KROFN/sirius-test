@@ -38,3 +38,10 @@ Smoke: PLAYWRIGHT_MODULE=/path/to/playwright-core CHROMIUM_PATH=/path/to/chrome 
 Axe requires local .audit-deps/node_modules/axe-core (not committed).
 
 Release status: NOT APPROVED / draft PR only.
+
+## 11 ноября 2026 — исправление публикации скриншотов и mobile hero
+- После жалобы на Firefox проверили downloaded raw GitHub artifact, не только локальный скриншот. Локальный WebP имел правильный RIFF/WEBP заголовок, а опубликованный через GitHub blob — **другие повреждённые байты** (при экспорте Base64 Node2 вернул усечённую строку большого файла). Ранее 52 браузерных теста эту проблему не покрывали.
+- Повторная загрузка выполняется строго chunked Base64 по 60 000 символов; SHA GitHub blob обязан совпасть с локальным `git hash-object`. После commit проверять downloaded GitHub raw и сравнивать SHA256 с локальным файлом.
+- Добавлен универсальный JPEG `docs/review/full-desktop.jpg` (900 px wide), новый WebP URL `full-desktop-v2.webp` для обхода старого CDN cache, и восстановлен исходный `full-desktop.webp`.
+- Mobile hero: модель уменьшена и перемещена выше, нижняя часть силуэта плавно уходит в тень перед текстом; добавлено локальное светотеневое затемнение для читаемости, повторный screenshot вручную просмотрен. Мобильная нижняя CTA скрыта, пока виден основной hero CTA, и появляется только после выхода из hero.
+- Даже после исправления нельзя считать весь дизайн 1:1 без настоящих интерьерных исходников. Mobile не имеет пользовательского эталона 390px и требует ручного согласования.

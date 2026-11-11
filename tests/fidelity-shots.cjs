@@ -36,6 +36,7 @@ const {pathToFileURL}=require('node:url');
  await page.screenshot({path:path.join(dir,'desktop-full.png'),fullPage:true,animations:'disabled'});
  await page.setViewportSize({width:390,height:844});
  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
+ await page.waitForTimeout(180);
  await page.screenshot({path:path.join(dir,'mobile-hero.png'),fullPage:false,animations:'disabled'});
  await page.screenshot({path:path.join(dir,'mobile-full.png'),fullPage:true,animations:'disabled'});
  await browser.close();

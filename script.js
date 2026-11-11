@@ -179,11 +179,28 @@
   const hero = document.querySelector('[data-hero]');
   const booking = document.querySelector('[data-final]');
   const contacts = document.querySelector('#contacts');
-  if (sticky && hero && booking && contacts && 'IntersectionObserver' in window) {
-    const seen = {hero:true,booking:false,contacts:false};
-    const sync = () => sticky.classList.toggle('is-visible', !seen.hero && !seen.booking && !seen.contacts);
-    for (const [node,key] of [[hero,'hero'],[booking,'booking'],[contacts,'contacts']]) {
-      new IntersectionObserver(([entry]) => {seen[key] = entry.isIntersecting;sync();},{threshold:.08}).observe(node);
-    }
+  if (sticky && hero && booking && contacts) {
+    let scheduled = false;
+    const syncSticky = () => {
+      scheduled = false;
+      const vh = window.innerHeight;
+      const occupiesViewport = (node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.top < vh * .88 && rect.bottom > vh * .12;
+      };
+      // Don't duplicate the hero CTA or cover the actual booking/contact forms.
+      const show = window.innerWidth <= 760 &&
+        hero.getBoundingClientRect().bottom < vh * .10 &&
+        !occupiesViewport(booking) && !occupiesViewport(contacts);
+      sticky.classList.toggle('is-visible', show);
+    };
+    const scheduleSync = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(syncSticky);
+    };
+    window.addEventListener('scroll', scheduleSync, {passive:true});
+    window.addEventListener('resize', scheduleSync);
+    syncSticky();
   }
 })();
